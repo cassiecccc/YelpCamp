@@ -2,21 +2,8 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const catchAsync = require("../utils/catchAsync");
-const ExpressError = require("../utils/ExpressError");
 const Campground = require("../models/campground");
-const { campgroundSchema } = require("../schemas");
-const { isLoggedIn } = require("../middleware");
-
-// joi middleware new campground
-const validateCampground = (req, res, next) => {
-  const { error } = campgroundSchema.validate(req.body);
-  if (error) {
-    const message = error.details.map((el) => el.message).join(",");
-    throw new ExpressError(message, 400);
-  } else {
-    next();
-  }
-};
+const { isLoggedIn, isAuthor, validateCampground } = require("../middleware");
 
 // CAMPGROUND CRUD
 router.get(
@@ -41,6 +28,7 @@ router.post(
     // if (!req.body.campground)
     //   throw new ExpressError("Invalid Campground Data", 400);
     const campground = new Campground(req.body.campground); //*grouped in ejs
+    campground.author = req.user._id;
     await campground.save();
     req.flash("success", "Successfully made a new campground");
     res.redirect(`/campgrounds/${campground._id}`);
@@ -51,9 +39,14 @@ router.post(
 router.get(
   "/:id",
   catchAsync(async (req, res) => {
-    const campground = await Campground.findById(req.params.id).populate(
-      "reviews"
-    );
+    const campground = await Campground.findById(req.params.id)
+      .populate({
+        path: "reviews",
+        populate: {
+          path: "author",
+        },
+      }) //* populate reviews and review's author
+      .populate("author");
     if (!campground) {
       // || mongoose.isObjectIdOrHexString(req.params.id) == false
       req.flash("error", "Cannot find that campground");
@@ -67,6 +60,7 @@ router.get(
 router.get(
   "/:id/edit",
   isLoggedIn,
+  isAuthor,
   catchAsync(async (req, res) => {
     const campground = await Campground.findById(req.params.id);
     if (!campground) {
@@ -80,6 +74,7 @@ router.get(
 router.put(
   "/:id",
   isLoggedIn,
+  isAuthor,
   validateCampground,
   catchAsync(async (req, res) => {
     const { id } = req.params;
@@ -95,6 +90,7 @@ router.put(
 router.delete(
   "/:id",
   isLoggedIn,
+  isAuthor,
   catchAsync(async (req, res) => {
     const { id } = req.params;
     await Campground.findByIdAndDelete(id);
