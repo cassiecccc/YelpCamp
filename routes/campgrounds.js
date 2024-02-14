@@ -7,6 +7,9 @@ const { isLoggedIn, isAuthor, validateCampground } = require("../middleware");
 //* moved everything to MVC controllers
 
 //* router.route group things together
+const { storage } = require("../cloudinary");
+const multer = require("multer");
+const upload = multer({ storage });
 
 // router
 //   .route("/")
@@ -27,6 +30,7 @@ router.get("/new", isLoggedIn, campgrounds.renderNewForm);
 router.post(
   "/",
   isLoggedIn,
+  upload.array("image"),
   validateCampground,
   catchAsync(campgrounds.createCampground)
 );
