@@ -1,4 +1,4 @@
-# About the projects
+# About the project
 
 YelpCamp is a Full Stack project can view, create, edit, delete and review campgrounds from all around US. CRUD actions requires user to register an account.
 
